@@ -16,18 +16,70 @@
 }
 
 .panel {
-    display: -ms-flexbox;
+    // Flex ayarları
     display: flex;
-    flex-flow: column;
-    height: 550px;
+    flex-direction: column; // flex-flow yerine daha okunaklı
+    
+    // Boyutlandırma ve Genişleme (KRİTİK KISIM)
+    width: 100%;           // Bulunduğu alanı tamamen kapla
+    height: 100%;          // Yükseklik olarak da ebeveynine uy (550px sabitini kaldırabilirsin)
+    min-height: 550px;     // Ama en az 550px olsun (İçerik azsa bile küçülmesin)
+    max-height: 750px;  
+    /* MOBİL İÇİN ÖZEL AYAR: Ekranı doldursun ama taşmasın */
+    @media (max-width: 600px) {
+        min-height: auto; /* Zorlama yüksekliği kaldır */
+        max-height: none; /* Kısıtlamayı kaldır */
+        height: 85vh;     /* Ekranın %85'ini kapla (alt menü payı) */
+        border-radius: 16px; /* Daha yuvarlak köşeler (iOS style) */
+    }
+    flex-grow: 1;          // Flex yapısında kalan boşluğu doldur
+    
+    
+    // Görünüm
+    background-color: $bg-color; // Hardcoded #fff yerine değişkene bağladım
+    color: $body-font-color;     // Hardcoded #000 yerine değişkene bağladım
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    
+    // Kenar Yumuşatma (Modern dokunuş)
+    border-radius: $border-radius;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
 }
 
+/* _panel.scss - YÜKSEKLİK VE TAŞMA DÜZELTMESİ */
 .panel {
-    background-color: #fff;
-    color: #000;
+    display: flex;
+    flex-direction: column;
+    
+    /* Temel Ayarlar */
+    width: 100%;
+    height: 100%;
+    background-color: #fff; /* Değişken varsa $bg-color kullanın */
+    color: #000;            /* Değişken varsa $body-font-color kullanın */
+    
+    /* Masaüstü Sınırları (Mevcut korunsun) */
+    min-height: 550px;
+    max-height: 750px;
+    
+    /* Flex Ayarı (Kalan boşluğu doldur) */
+    flex-grow: 1;
+    
+    /* Köşeler ve Gölge */
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    
+    /* ÖNEMLİ: Panel içindeki taşmayı engelle, scroll'u alt elemana bırak */
+    overflow: hidden !important; 
+
+    /* MOBİL İÇİN ÖZEL AYARLAR (< 600px) */
+    @media (max-width: 600px) {
+        min-height: 0 !important; /* Zorunlu yüksekliği kaldır */
+        max-height: none !important; /* Sınırı kaldır */
+        height: 80vh; /* Ekranın %80'i kadar yer kapla (taşmayı önler) */
+        margin-bottom: 20px;
+    }
 }
+
 
 .panel-body-dashboard,
 .panel-body-interface,
@@ -38,8 +90,10 @@
 }
 .panel .navbar,
 .panel .navbar-section {
-    background: #f1f1fc;
-    color: #5755d9;
+    background: #343a40;
+    color: #ffffff;
+    font-size: 22px;
+    height:50px
 }
 
 .panel-item {

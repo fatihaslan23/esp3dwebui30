@@ -66,9 +66,9 @@ input[type="range"]::-ms-thumb {
 }
 
 .emergency-btn {
-    color: #ff5160;
-    background-color: #ffffff;
-    border-color: #ff5160;
+    color: #ebebeb;
+    background-color: #d30000;
+    border-color: #ff7884;
 }
 
 .emergency-btn:hover {
@@ -629,6 +629,21 @@ a label {
     background: blue;
     color: #fff;
     border: 0;
+}
+
+.btn.btn-clay {
+    background-color: #5755d9;
+    border-color: #f1f1f1;
+    color: #ffffff;
+    
+    &:hover, &:focus {
+        background-color: #b444e7; 
+        border-color: #ffffff;
+    }
+    
+    &:active {
+        transform: translateY(1px); // Tıklama efekti
+    }
 }
 
 .nested-button {

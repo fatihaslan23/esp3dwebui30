@@ -1,3 +1,5 @@
+/* src/contexts/HttpQueueContext.js */
+
 /*
  HttpQueueContext.js - ESP3D WebUI context file
 
@@ -18,7 +20,8 @@
 */
 import { h, createContext } from "preact"
 import { useContext, useRef } from "preact/hooks"
-import { httpAdapter } from "../adapters"
+// DEĞİŞİKLİK 1: httpAdapter yerine getAdapter import edildi
+import { getAdapter } from "../adapters"
 import { useUiContext } from "./UiContext"
 import { useWsContext } from "./WsContext"
 import { useTargetContext } from "../targets"
@@ -87,7 +90,9 @@ const HttpQueueContextProvider = ({ children }) => {
             requestQueue.current[0]
         let is401Error = false
         try {
-            currentRequest.current = httpAdapter(url, params, onProgress)
+            // DEĞİŞİKLİK 2: getAdapter() çağrıldı ve .request metodu kullanıldı
+            currentRequest.current = getAdapter().request(url, params, onProgress)
+            
             if (params.echo) {
                 processData("echo", params.echo)
             }
