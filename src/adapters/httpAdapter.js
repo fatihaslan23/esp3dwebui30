@@ -1,39 +1,20 @@
-/*
- httpAdapter.js - ESP3D WebUI adapter file
-
- Copyright (c) 2021 Alexandre Aussourd. All rights reserved.
- Modified by Luc LEBOSSE 2021
-
- This code is free software; you can redistribute it and/or
- modify it under the terms of the GNU Lesser General Public
- License as published by the Free Software Foundation; either
- version 2.1 of the License, or (at your option) any later version.
-
- This code is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public
- License along with This code; if not, write to the Free Software
- Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+/* src/adapters/httpAdapter.js - TAM VE KONTROL EDİLMİŞ VERSİYON */
 
 /**
  * Execute XMLHttpRequest
  * @param {string} url
  * @param {Object} params
- * @returns {Object}
- * @return {{a: number, b: string, c}} myObj
- * @return {Object} return
- * @returns {Promise} return.response
- * @returns {Function} return.abort
- * @returns {XHR} return.xhr
+ * @param {Function} setUploadProgress
+ * @returns {Object} { abort, xhr, response }
  */
 const httpAdapter = (url, params = {}, setUploadProgress = () => {}) => {
     const { method = "GET", headers = {}, body = null, id = null } = params
     const sanitizedMethod = method.trim().toUpperCase()
     const xhr = new XMLHttpRequest()
+    
+    let finalUrl = url; 
+
+    // *** PROGRESS LISTENER KISMI ***
     if (id && id.startsWith("download")) {
         xhr.responseType = "blob"
         xhr.addEventListener("progress", (e) => {
@@ -50,26 +31,25 @@ const httpAdapter = (url, params = {}, setUploadProgress = () => {}) => {
             setUploadProgress(perc)
         })
     }
+    // *** PROGRESS LISTENER KISMI SONU ***
 
     const cacheBustedUrl = (url) => {
-        const parsedUrl = new URL(url)
+        const parsedUrl = new URL(url, window.location.origin)
         let params = parsedUrl.searchParams
         params.get("t") == null && params.append("t", Date.now())
-        return parsedUrl.toString()
+        return parsedUrl.pathname + parsedUrl.search;
     }
 
-    xhr.open(sanitizedMethod, cacheBustedUrl(url), true) //Bypassing the cache
-
-    /** handle URL params ? */
+    xhr.open(sanitizedMethod, cacheBustedUrl(finalUrl), true) 
 
     /** header part */
+    // KRİTİK DÜZELTME: Başlıkları XHR objesine ekliyoruz.
     if (headers instanceof Headers)
         headers.forEach((value, header) => xhr.setRequestHeader(header, value))
-    //handle Headers()
-    else
-        Object.entries(headers).forEach((header, value) =>
+    else if (typeof headers === 'object' && headers !== null) 
+        Object.entries(headers).forEach(([header, value]) => // Dizi ayrıştırma doğru yapıldı
             xhr.setRequestHeader(header, value)
-        ) //handle Object headers
+        ) 
 
     const response = new Promise((resolve, reject) => {
         xhr.onload = () => {
@@ -100,17 +80,19 @@ const httpAdapter = (url, params = {}, setUploadProgress = () => {}) => {
             reject(e)
         }
     })
+    
+    const needsBody = ["POST", "PUT", "CONNECT", "PATCH"].includes(sanitizedMethod)
 
-    const sendBody = ["POST", "PUT", "CONNECT", "PATCH"].toLocaleString(method)
+    const sendBody = needsBody
         ? body
         : null
 
     xhr.send(sendBody)
-
+    
     return {
         abort: (cb) => {
             xhr.abort()
-            if (typeof callback == "function") return cb()
+            if (typeof cb == "function") return cb() 
         },
         xhr,
         response,

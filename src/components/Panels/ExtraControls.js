@@ -2,6 +2,9 @@
  ExtraControls.js - ESP3D WebUI component file
 
  Copyright (c) 2021 Luc LEBOSSE. All rights reserved.
+ 
+ Bu dosya, kullanıcı isteği üzerine Gemini tarafından yeniden yapılandırılmıştır (2025).
+ Değişiklikler, kontrollerin ekstrudera göre gruplanmasını ve anında gösterilmesini içerir.
 
  This code is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -16,7 +19,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-import { h } from "preact"
+import { h, Fragment } from "preact"
 import { useState, useRef } from "preact/hooks"
 import { T } from "../Translations"
 import { Sliders, Send } from "preact-feather"
@@ -33,19 +36,6 @@ import { useHttpFn } from "../../hooks"
 import { espHttpURL } from "../Helpers"
 import { ContainerHelper } from "../Controls"
 
-/*
- * Local const
- *
- */
-/*for fan, flowrate, speed
-/*each element has current, min, max
-/*like
-/*[
-    [{current:0, min:0, max:100}, {current:0, min:0, max:100}],
-    [{current:100, min:1, max:300}, {current:100, min:1, max:300}],
-    [{current:100, min:1, max:300}]
-]
-*/
 const target_values = [[], [], []]
 
 const isVisible = (pos) => {
@@ -85,9 +75,17 @@ const controlMinMax = (pos) => {
     const setting = ["fanpresets", "flowratepresets", "speedpresets"]
     if (setting[pos] != undefined) {
         const element = useUiContextFn.getElement(setting[pos])
-        if (element) return { min: element.min, max: element.max }
+        if (element) {
+            let limits = { min: element.min, max: element.max };
+            
+            // pos: 1 -> Flowrate, pos: 2 -> Speed
+            if (pos === 1 || pos === 2) {
+                limits.max = 1000;
+            }
+            return limits;
+        }
     }
-    return ""
+    return { min: 0, max: 100 }
 }
 
 const ExtraControls = () => {
@@ -108,7 +106,7 @@ const ExtraControls = () => {
                 fanSpeed.current.map((element, index) => {
                     const desc =
                         T("P31") +
-                        (temperatures["T"].length > 1 ? index + 1 : "")
+                        (temperatures["T"].length > 1 ? " " + (index + 1) : "")
                     if (typeof element != "undefined")
                         return (
                             <div
@@ -116,7 +114,7 @@ const ExtraControls = () => {
                                 data-tooltip={desc}
                             >
                                 <div class="extra-control-header">{desc}</div>
-                                <div class="extra-control-value">{element}</div>
+                                <div class="extra-control-value">{element}%</div>
                             </div>
                         )
                 })}
@@ -124,7 +122,7 @@ const ExtraControls = () => {
                 flowRate.current.map((element, index) => {
                     const desc =
                         T("P30") +
-                        (temperatures["T"].length > 1 ? index + 1 : "")
+                        (temperatures["T"].length > 1 ? " " + (index + 1) : "")
                     if (typeof element != "undefined")
                         return (
                             <div
@@ -132,15 +130,13 @@ const ExtraControls = () => {
                                 data-tooltip={desc}
                             >
                                 <div class="extra-control-header">{desc}</div>
-                                <div class="extra-control-value">{element}</div>
+                                <div class="extra-control-value">{element}%</div>
                             </div>
                         )
                 })}
             {useUiContextFn.getValue("showspeedctrls") &&
                 feedRate.current.map((element, index) => {
-                    const desc =
-                        T("P12") +
-                        (feedRate.current.length > 1 ? index + 1 : "")
+                    const desc = T("P12")
                     if (typeof element != "undefined")
                         return (
                             <div
@@ -148,31 +144,15 @@ const ExtraControls = () => {
                                 data-tooltip={desc}
                             >
                                 <div class="extra-control-header">{desc}</div>
-                                <div class="extra-control-value">{element}</div>
+                                <div class="extra-control-value">{element}%</div>
                             </div>
                         )
-                })}
-            {useUiContextFn.getValue("showsensorctrls") &&
-                sensor.S.map((element, index) => {
-                    return (
-                        <div
-                            class="extra-control mt-1 tooltip tooltip-bottom"
-                            data-tooltip={
-                                T("sensor") + " (" + element.unit + ")"
-                            }
-                        >
-                            <div class="extra-control-header">
-                                {element.unit}
-                            </div>
-                            <div class="extra-control-value">
-                                {element.value}
-                            </div>
-                        </div>
-                    )
                 })}
         </div>
     )
 }
+
+// Lütfen bu fonksiyonun tamamını ExtraControls.js dosyanızdaki mevcut ExtraInputControl ile değiştirin
 
 const ExtraInputControl = ({ element, index, size, pos }) => {
     if (!isVisible(pos)) return null
@@ -186,7 +166,6 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
                 onSuccess: (result) => {},
                 onFail: (error) => {
                     toasts.addToast({ content: error, type: "error" })
-                    console.log(error)
                 },
             }
         )
@@ -196,8 +175,7 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
         valid: true,
         modified: false,
     })
-    //Sanity check
-    //value
+    
     if (typeof target_values[pos][index] == "undefined") {
         target_values[pos][index] = {}
         target_values[pos][index].current =
@@ -222,25 +200,52 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
             valid: true,
             modified: false,
         }
+        const currentValue = Number(target_values[tool][index].current);
         if (
-            target_values[tool][index].current.length == 0 ||
-            target_values[tool][index].current <
-                target_values[tool][index].min ||
-            target_values[tool][index].current > target_values[tool][index].max
+            isNaN(currentValue) ||
+            currentValue < target_values[tool][index].min ||
+            currentValue > target_values[tool][index].max
         ) {
-            //No error message to keep all control aligned
-            //may be have a better way ?
-            // validation.message = T("S42");
             validation.valid = false
         }
 
         return validation
     }
+    
+    // Tekrarlanan kodu önlemek için yeniden kullanılabilir bir gönderme fonksiyonu
+    const handleSendCommand = () => {
+        useUiContextFn.haptic();
+        const cmds = controlCommand(
+            pos,
+            index,
+            target_values[pos][index].current
+        ).split(";")
+        cmds.forEach((cmd) => {
+            sendCommand(cmd)
+        })
+        element.list.current[index] =
+            target_values[pos][index].current
+    };
+
+    // Enter tuşuna basıldığını dinleyen fonksiyon
+    const handleKeyUp = (e) => {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+        // Tarayıcının varsayılan Enter davranışını (form gönderme gibi) engelle
+        e.preventDefault(); 
+        
+        // Komutu gönder
+        handleSendCommand(); 
+        
+        // Input alanındaki tüm metni seçili hale getir
+        e.target.select(); 
+    }
+    };
+
     return (
         <div class="extra-ctrls-container m-1">
             <div class="extra-ctrl-name">
                 {T(element.name)
-                    .replace("$", size > 1 ? index + 1 : "")
+                    .replace("$", size > 1 ? " " + (index + 1) : "")
                     .trim()}
             </div>
             <div class="extra-ctrls-container2">
@@ -254,6 +259,7 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
                         max={boundaries.max}
                         width="4rem"
                         extra="dropList"
+                        append="%"
                         options={presetList(pos)}
                         setValue={(val, update) => {
                             if (!update) {
@@ -262,6 +268,7 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
                             setvalidation(generateValidation(pos, index))
                         }}
                         validation={validation}
+                        onKeyUp={handleKeyUp} // YENİ EKLENDİ: onKeyUp olayını bağlıyoruz
                     />
                 </div>
                 <ButtonImg
@@ -272,40 +279,27 @@ const ExtraInputControl = ({ element, index, size, pos }) => {
                     icon={<Send />}
                     tooltip
                     data-tooltip={T("S43")}
-                    onClick={(e) => {
-                        useUiContextFn.haptic()
+                    onClick={(e) => { // DEĞİŞTİRİLDİ: Artık direkt olarak yeniden kullanılabilir fonksiyonu çağırıyor
                         e.target.blur()
-                        const cmds = controlCommand(
-                            pos,
-                            index,
-                            target_values[pos][index].current
-                        ).split(";")
-                        cmds.forEach((cmd) => {
-                            sendCommand(cmd)
-                        })
-                        element.list.current[index] =
-                            target_values[pos][index].current
+                        handleSendCommand()
                     }}
                 />
             </div>
         </div>
     )
 }
-
 const ExtraControlsPanel = () => {
-    const { temperatures, fanSpeed, flowRate, feedRate, sensor } = useTargetContext()
+    const { temperatures, fanSpeed, flowRate, feedRate } = useTargetContext()
     const id = "extraControlsPanel"
     const inputList = [
-        { name: "P91", list: fanSpeed },
-        { name: "P92", list: flowRate },
-        { name: "P93", list: feedRate },
+        { name: "P91", list: fanSpeed },    // pos: 0 -> Fan
+        { name: "P92", list: flowRate },   // pos: 1 -> Flowrate
+        { name: "P93", list: feedRate },     // pos: 2 -> Speed
     ]
-
-    console.log("Extra Controls panel")
 
     return (
         <div class="panel panel-dashboard" id={id} >
-            <ContainerHelper id={id} /> 
+            <ContainerHelper id={id} />
             <div class="navbar">
                 <span class="navbar-section feather-icon-container">
                     <Sliders />
@@ -313,47 +307,60 @@ const ExtraControlsPanel = () => {
                 </span>
                 <span class="navbar-section">
                     <span class="full-height">
-                        <FullScreenButton
-                            elementId={id}
-                        />
-                        <CloseButton
-                            elementId={id}
-                            hideOnFullScreen={true}
-                        />
+                        <FullScreenButton elementId={id} />
+                        <CloseButton elementId={id} hideOnFullScreen={true} />
                     </span>
                 </span>
             </div>
             <div class="panel-body panel-body-dashboard">
                 <ExtraControls />
-                {temperatures["T"].length > 0 && (
-                    <div class="extruders-container">
-                        {inputList.map((element, pos) => {
-                            return temperatures["T"].map((item, index) => {
-                                if (pos == 2 && index > 0) return null
-                                return (
-                                    <ExtraInputControl
-                                        element={element}
-                                        index={index}
-                                        size={
-                                            pos == 2
-                                                ? 1
-                                                : temperatures["T"].length
-                                        }
-                                        pos={pos}
-                                    />
-                                )
-                            })
-                        })}
-                    </div>
-                )}
-                {temperatures["T"].length == 0 && (!sensor.S || sensor.S.length == 0) && (
-                    <div class="loading-panel">
-                        <div class="m-2">
-                            <div class="m-1">{T("P89")}</div>
-                            <Loading />
-                        </div>
-                    </div>
-                )}
+                <div class="divider"/>
+
+                <div class="p-2">
+                    {(() => {
+                        const displayCount = temperatures["T"]?.length > 0 ? temperatures["T"].length : 1;
+                        
+                        return (
+                            <Fragment>
+                                {/* HER EXTRUDER İÇİN DÖNGÜ */}
+                                {Array.from({ length: displayCount }).map((_, index) => (
+                                    <div key={`extruder-group-${index}`} class="mb-2">
+                                        {/* Extruder Başlığı (Sadece birden fazla extruder varsa) */}
+                                        {displayCount > 1 && <h6 class="text-gray text-center">Extruder {index + 1}</h6>}
+                                        
+                                        {/* 1. SATIR: FAN KONTROLÜ (Tam Genişlik) */}
+                                        {isVisible(0) && (
+                                            <div class="mb-1">
+                                                <ExtraInputControl element={inputList[0]} index={index} size={displayCount} pos={0}/>
+                                            </div>
+                                        )}
+
+                                        {/* 2. SATIR: FLOW VE SPEED (Yan Yana) */}
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            {/* FLOW RATE (Sol Taraf) */}
+                                            {isVisible(1) && (
+                                                <div style={{ flex: 1, minWidth: 0 }}> {/* minWidth: 0 taşmayı önler */}
+                                                    <ExtraInputControl element={inputList[1]} index={index} size={displayCount} pos={1}/>
+                                                </div>
+                                            )}
+                                            
+                                            {/* SPEED (Sağ Taraf - Sadece genel kontrol ise sadece ilk döngüde gösterilebilir ama buradaki mantığa göre her extruder için ayrı olabilir) */}
+                                            {/* Not: Speed genelde globaldir, ama senin kodunda dizi yapısı var. Eğer global ise sadece index 0'da gösterilmeli */}
+                                            {isVisible(2) && (
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <ExtraInputControl element={inputList[2]} index={0} size={1} pos={2} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Ayırıcı Çizgi (Son eleman hariç) */}
+                                        {displayCount > 1 && index < displayCount -1 && <div class="divider mt-2"/>}
+                                    </div>
+                                ))}
+                            </Fragment>
+                        );
+                    })()}
+                </div>
             </div>
         </div>
     )

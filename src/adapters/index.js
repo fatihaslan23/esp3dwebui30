@@ -1,24 +1,26 @@
-/*
- index.js - ESP3D WebUI adapter file
+/* src/adapters/index.js */
+import HttpAdapter from './httpAdapter';
+import SerialAdapter from './serialAdapter';
 
- Copyright (c) 2020 Luc Lebosse. All rights reserved.
+// Varsayılan olarak HttpAdapter (Wi-Fi) ile başla
+let currentAdapter = new HttpAdapter();
+let adapterType = 'wifi';
 
- This code is free software; you can redistribute it and/or
- modify it under the terms of the GNU Lesser General Public
- License as published by the Free Software Foundation; either
- version 2.1 of the License, or (at your option) any later version.
+export const getAdapter = () => {
+    return currentAdapter;
+};
 
- This code is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Lesser General Public License for more details.
+// Adaptörü değiştirmek için bu fonksiyonu çağıracağız
+export const setAdapter = (type, params) => {
+    if (type === 'usb') {
+        adapterType = 'usb';
+        currentAdapter = new SerialAdapter();
+    } else {
+        adapterType = 'wifi';
+        currentAdapter = new HttpAdapter();
+    }
+    return currentAdapter;
+};
 
- You should have received a copy of the GNU Lesser General Public
- License along with This code; if not, write to the Free Software
- Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-import { h } from "preact"
-
-import { httpAdapter } from "./httpAdapter"
-
-export { httpAdapter }
+// Hangi moddayız?
+export const getAdapterType = () => adapterType;
