@@ -1,3 +1,5 @@
+/* src/targets/Printer3D/Marlin/Controls/InformationsControls.js */
+
 /*
  Informations.js - ESP3D WebUI Target file
 
@@ -18,7 +20,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 import { Fragment, h } from "preact"
-import { PositionsControls } from "../../../../components/Panels/Jog"
+// DEĞİŞİKLİK 1: PositionsControls yerine JogPanel import ettik
+import { JogPanel } from "../../../../components/Panels/Jog"
 import { TemperaturesControls } from "../../../../components/Panels/Temperatures"
 import { ExtraControls } from "../../../../components/Panels/ExtraControls"
 import { StatusControls } from "../../../../components/Panels/Status"
@@ -27,7 +30,8 @@ import { useUiContextFn } from "../../../../contexts"
 const InformationsControls = () => {
     return (
         <Fragment>
-            {useUiContextFn.getValue("showjogpanel") && <PositionsControls />}
+            {/* DEĞİŞİKLİK 2: Burada bileşen adını güncelledik */}
+            {useUiContextFn.getValue("showjogpanel") && <JogPanel />}
             {useUiContextFn.getValue("showtemperaturespanel") && (
                 <TemperaturesControls />
             )}
